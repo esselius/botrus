@@ -1,0 +1,2 @@
+class Botrus::Repo
+end
