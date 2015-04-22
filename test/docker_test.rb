@@ -16,14 +16,20 @@ class TestBotrusDocker < Minitest::Test
   end
 
 
-  def test_can_run_bootstrap_script
+  def test_can_run_script_from_file
+    containers = @botrus.list
+
+    containers.each do |container|
+      output = container.run('test/hello_world.sh')
+      assert_match(/Hello world!/, output)
+    end
+  end
+
+  def test_can_run_command
     containers = @botrus.list
 
     containers.each do |container|
       output = container.run('echo Hello world!')
-      assert_match(/Hello world!/, output)
-
-      output = container.run('test/hello_world.sh')
       assert_match(/Hello world!/, output)
     end
   end
