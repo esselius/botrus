@@ -26,6 +26,7 @@ class Botrus::Docker
 
   def teardown
     @containers.each do |container|
+      container.wait
       container.delete(:force => true)
     end
   end
