@@ -1,9 +1,7 @@
 require "botrus/version"
 
+require 'net/ssh'
 require 'docker'
-
-require "botrus/repo"
-require "botrus/repo/dummy"
 
 require 'botrus/docker'
 

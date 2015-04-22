@@ -2,12 +2,14 @@ class Botrus::Docker
   class Container
     def initialize(options)
       @container = Docker::Container.create(
-        'Cmd' => [options.fetch(:cmd)],
         'Env' => ['PATH=/host:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'],
-        'Image' => options.fetch(:image) + ':' + options.fetch(:tag),
+        'Image' => options.fetch(:image),
         'WorkingDir' => '/host',
         'HostConfig' => {
-          'Binds' => ["#{Dir.pwd}:/host"]
+          'Binds' => ["#{Dir.pwd}:/host"],
+          'PortBindings' => {
+            '22/tcp' => [{ 'HostPort' => '' }]
+          }
         }
       )
 
@@ -19,8 +21,17 @@ class Botrus::Docker
     end
 
     def delete
-      @container.wait
-      @container.delete
+      @container.delete(force: true)
+    end
+
+    def run(command)
+      host = URI(Docker.url).host
+      port = Docker::Container.get(@container.id).info.fetch('NetworkSettings').fetch('Ports').fetch('22/tcp').first.fetch('HostPort').to_i
+
+
+      Net::SSH.start(host, 'root', port: port, password: 'insecure') do |ssh|
+        return ssh.exec!('cd /host;' + command)
+      end
     end
   end
 
@@ -30,14 +41,11 @@ class Botrus::Docker
   end
 
   def setup
-    Docker::Image.create('fromImage' => @options.fetch(:image), 'tag' => @options.fetch(:tag))
+    image = 'esselius/botrus'
+    Docker::Image.create('fromImage' => image)
 
     @options.fetch(:containers).times do
-      container = Container.new(
-        image:  @options.fetch(:image),
-        tag:    @options.fetch(:tag),
-        cmd:    @options.fetch(:script)
-      )
+      container = Container.new(image:  image)
 
       @containers << container
     end
