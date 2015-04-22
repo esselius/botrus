@@ -1,4 +1,29 @@
 class Botrus::Docker
+  class Container
+    def initialize(options)
+      @container = Docker::Container.create(
+        'Cmd' => [options.fetch(:cmd)],
+        'Env' => ['PATH=/host:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'],
+        'Image' => options.fetch(:image) + ':' + options.fetch(:tag),
+        'WorkingDir' => '/host',
+        'HostConfig' => {
+          'Binds' => ["#{Dir.pwd}:/host"]
+        }
+      )
+
+      @container.start
+    end
+
+    def output
+      @container.logs(stdout: true)
+    end
+
+    def delete
+      @container.wait
+      @container.delete
+    end
+  end
+
   def initialize(options)
     @options = options
     @containers = []
@@ -8,17 +33,11 @@ class Botrus::Docker
     Docker::Image.create('fromImage' => @options.fetch(:image), 'tag' => @options.fetch(:tag))
 
     @options.fetch(:containers).times do
-      container = Docker::Container.create(
-        'Cmd' => [@options.fetch(:script)],
-        'Env' => ['PATH=/host:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'],
-        'Image' => @options.fetch(:image) + ':' + @options.fetch(:tag),
-        'WorkingDir' => '/host',
-        'HostConfig' => {
-          'Binds' => ["#{Dir.pwd}:/host"]
-        }
+      container = Container.new(
+        image:  @options.fetch(:image),
+        tag:    @options.fetch(:tag),
+        cmd:    @options.fetch(:script)
       )
-
-      container.start
 
       @containers << container
     end
@@ -26,8 +45,7 @@ class Botrus::Docker
 
   def teardown
     @containers.each do |container|
-      container.wait
-      container.delete(:force => true)
+      container.delete
     end
   end
 
