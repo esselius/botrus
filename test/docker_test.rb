@@ -4,7 +4,9 @@ class TestDocker < Minitest::Test
   def setup
     @botrus = Botrus::Docker.new(
       containers: 3,
-      image: 'esselius/botrus'
+      image: 'debian',
+      tag: 'jessie',
+      script: 'ls'
     )
 
     @botrus.setup
